@@ -1,4 +1,4 @@
-"""Minimal Django settings for the django-ormlens test suite.
+"""Minimal Django settings for the django-querylens test suite.
 
 This module is referenced by ``pyproject.toml`` via::
 
@@ -6,12 +6,12 @@ This module is referenced by ``pyproject.toml`` via::
     DJANGO_SETTINGS_MODULE = "tests.settings"
 
 It uses an in-memory SQLite database and includes only the apps required
-to exercise the django-ormlens package.
+to exercise the django-querylens package.
 """
 
 from __future__ import annotations
 
-SECRET_KEY = "django-ormlens-insecure-test-secret-key"  # noqa: S105
+SECRET_KEY = "django-querylens-insecure-test-secret-key"  # noqa: S105
 
 DEBUG = True
 
@@ -28,7 +28,7 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django_ormlens",
+    "django_querylens",
     "tests",
 ]
 
@@ -56,9 +56,9 @@ TEMPLATES = [
     },
 ]
 
-# django-ormlens configuration used during tests.
+# django-querylens configuration used during tests.
 # N1_THRESHOLD is deliberately low (2) to make N+1 tests easier to trigger.
-ORMLENS = {
+QUERYLENS = {
     "ENABLED": True,
     "SAMPLE_RATE": 1.0,
     "N1_THRESHOLD": 2,

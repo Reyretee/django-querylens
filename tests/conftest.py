@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for django-ormlens test suite."""
+"""Shared pytest fixtures for django-querylens test suite."""
 
 from __future__ import annotations
 

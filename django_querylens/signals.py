@@ -6,11 +6,11 @@ HTTP request.  All per-request state is stored in :mod:`threading.local`
 storage so concurrent requests in multi-threaded WSGI/ASGI servers do not
 interfere with one another.
 
-The module is imported by :class:`~django_ormlens.apps.DjangoOrmLensConfig`
+The module is imported by :class:`~django_querylens.apps.DjangoQueryLensConfig`
 inside its ``ready()`` method, which guarantees that signal registration
 happens exactly once, after the full Django application registry is populated.
 
-Settings (``ORMLENS`` dict in ``settings.py``):
+Settings (``QUERYLENS`` dict in ``settings.py``):
 
 * ``ENABLED`` — master switch; when ``False`` no signal handlers are active.
 * ``SAMPLE_RATE`` — float in ``[0.0, 1.0]``; fraction of requests to analyse.
@@ -31,7 +31,7 @@ from typing import Any
 
 from django.core.signals import request_finished, request_started
 
-from django_ormlens.analyzer import AnalysisResult, QueryAnalyzer, get_ormlens_setting
+from django_querylens.analyzer import AnalysisResult, QueryAnalyzer, get_querylens_setting
 
 logger = logging.getLogger(__name__)
 
@@ -52,24 +52,24 @@ _local: threading.local = threading.local()
 
 
 def _is_enabled() -> bool:
-    """Return whether global ormlens analysis is enabled.
+    """Return whether global querylens analysis is enabled.
 
     Returns:
-        ``True`` when ``ORMLENS["ENABLED"]`` is set to a truthy value (or
+        ``True`` when ``QUERYLENS["ENABLED"]`` is set to a truthy value (or
         absent, defaulting to ``True``).
     """
-    return bool(get_ormlens_setting("ENABLED", True))
+    return bool(get_querylens_setting("ENABLED", True))
 
 
 def _should_sample() -> bool:
     """Determine whether the current request should be sampled.
 
-    Reads ``ORMLENS["SAMPLE_RATE"]`` and performs a Bernoulli trial.
+    Reads ``QUERYLENS["SAMPLE_RATE"]`` and performs a Bernoulli trial.
 
     Returns:
         ``True`` when this request should be analysed.
     """
-    rate: float = float(get_ormlens_setting("SAMPLE_RATE", 1.0))
+    rate: float = float(get_querylens_setting("SAMPLE_RATE", 1.0))
     if rate >= 1.0:
         return True
     if rate <= 0.0:
@@ -78,7 +78,7 @@ def _should_sample() -> bool:
 
 
 def _reset_local() -> None:
-    """Clear all ormlens attributes from the current thread's local storage.
+    """Clear all querylens attributes from the current thread's local storage.
 
     Defensive helper called at the start of each request to ensure stale
     state from a previous request (e.g. after an unhandled exception that
@@ -102,14 +102,14 @@ def on_request_started(sender: Any, **kwargs: Any) -> None:  # noqa: ANN401
 
     Initialises thread-local state and, when sampling decides this request
     should be observed, begins a query-capture session by entering the
-    :meth:`~django_ormlens.analyzer.QueryAnalyzer.capture` context manager.
+    :meth:`~django_querylens.analyzer.QueryAnalyzer.capture` context manager.
 
     The context manager cannot be used as a true ``with`` block here because
     the start and end of a request span two separate signal handlers.  Instead
     the context manager protocol is driven manually:
 
     1. ``ctx.__enter__()`` — runs the setup logic and returns the
-       :class:`~django_ormlens.analyzer.AnalysisResult`.
+       :class:`~django_querylens.analyzer.AnalysisResult`.
     2. ``ctx.__exit__(None, None, None)`` — runs the teardown/finally block
        in ``on_request_finished``.
 
@@ -127,11 +127,11 @@ def on_request_started(sender: Any, **kwargs: Any) -> None:  # noqa: ANN401
         _local.request_method = environ.get("REQUEST_METHOD", "")
 
     if not _is_enabled():
-        logger.debug("django-ormlens: signals disabled; skipping request_started.")
+        logger.debug("django-querylens: signals disabled; skipping request_started.")
         return
 
     if not _should_sample():
-        logger.debug("django-ormlens: sampling skipped for this request.")
+        logger.debug("django-querylens: sampling skipped for this request.")
         return
 
     analyzer = QueryAnalyzer()
@@ -142,7 +142,7 @@ def on_request_started(sender: Any, **kwargs: Any) -> None:  # noqa: ANN401
     try:
         result: AnalysisResult = ctx.__enter__()
     except Exception:
-        logger.exception("django-ormlens: capture().__enter__() raised unexpectedly.")
+        logger.exception("django-querylens: capture().__enter__() raised unexpectedly.")
         return
 
     _local.active = True
@@ -151,7 +151,7 @@ def on_request_started(sender: Any, **kwargs: Any) -> None:  # noqa: ANN401
     # Store the context manager so on_request_finished can __exit__ it.
     _local._ctx_manager = ctx
 
-    logger.debug("django-ormlens: request capture started.")
+    logger.debug("django-querylens: request capture started.")
 
 
 def on_request_finished(sender: Any, **kwargs: Any) -> None:  # noqa: ANN401
@@ -159,8 +159,8 @@ def on_request_finished(sender: Any, **kwargs: Any) -> None:  # noqa: ANN401
 
     Finalises the query-capture session started in :func:`on_request_started`
     by closing the generator, which causes the ``finally`` block inside
-    :meth:`~django_ormlens.analyzer.QueryAnalyzer.capture` to execute and
-    populate the :class:`~django_ormlens.analyzer.AnalysisResult`.  The
+    :meth:`~django_querylens.analyzer.QueryAnalyzer.capture` to execute and
+    populate the :class:`~django_querylens.analyzer.AnalysisResult`.  The
     populated result is then logged.
 
     If no capture session is active for the current thread (either because the
@@ -185,7 +185,7 @@ def on_request_finished(sender: Any, **kwargs: Any) -> None:  # noqa: ANN401
             ctx.__exit__(None, None, None)
         except Exception:
             logger.exception(
-                "django-ormlens: exception while finalising capture "
+                "django-querylens: exception while finalising capture "
                 "on request_finished."
             )
 
@@ -208,19 +208,19 @@ def on_request_finished(sender: Any, **kwargs: Any) -> None:  # noqa: ANN401
 def _log_result(result: AnalysisResult) -> None:
     """Emit formatted output for a completed request's analysis.
 
-    Uses :class:`~django_ormlens.formatters.TerminalFormatter` to produce
+    Uses :class:`~django_querylens.formatters.TerminalFormatter` to produce
     coloured, box-drawn output when ``colorama`` is installed.  Falls back
     to plain structured log messages on import failure.
 
     Args:
-        result: The :class:`~django_ormlens.analyzer.AnalysisResult` produced
+        result: The :class:`~django_querylens.analyzer.AnalysisResult` produced
             by the capture session.
     """
-    output_setting: str = str(get_ormlens_setting("OUTPUT", "terminal"))
+    output_setting: str = str(get_querylens_setting("OUTPUT", "terminal"))
 
     if output_setting == "terminal":
         try:
-            from django_ormlens.formatters import get_formatter
+            from django_querylens.formatters import get_formatter
 
             formatter = get_formatter("terminal")
             import sys
@@ -231,7 +231,7 @@ def _log_result(result: AnalysisResult) -> None:
             pass  # Fall back to plain logging below.
 
     logger.info(
-        "django-ormlens [request]: %d quer%s in %.3fms%s%s",
+        "django-querylens [request]: %d quer%s in %.3fms%s%s",
         result.total_count,
         "y" if result.total_count == 1 else "ies",
         result.total_time,
@@ -241,14 +241,14 @@ def _log_result(result: AnalysisResult) -> None:
 
     for detection in result.n_plus_one_detected:
         logger.warning(
-            "django-ormlens [request]: N+1 on table '%s' (%dx)",
+            "django-querylens [request]: N+1 on table '%s' (%dx)",
             detection.table,
             detection.count,
         )
 
     for slow in result.slow_queries:
         logger.warning(
-            "django-ormlens [request]: slow query %.1fms — %.120s",
+            "django-querylens [request]: slow query %.1fms — %.120s",
             slow.time_ms,
             slow.sql,
         )
@@ -264,7 +264,7 @@ def _store_result(result: AnalysisResult, *, path: str, method: str) -> None:
 
     Storage is already gated by ``_is_enabled()`` and ``_should_sample()``
     in :func:`on_request_started`, so no additional guards are needed here.
-    The bounded deque in :class:`~django_ormlens.store.ReportStore`
+    The bounded deque in :class:`~django_querylens.store.ReportStore`
     prevents unbounded memory growth.
 
     Args:
@@ -273,12 +273,12 @@ def _store_result(result: AnalysisResult, *, path: str, method: str) -> None:
         method: The HTTP request method.
     """
     try:
-        from django_ormlens.store import StoredReport, get_store
+        from django_querylens.store import StoredReport, get_store
 
         report = StoredReport(path=path, method=method, result=result)
         get_store().add(report)
     except Exception:
-        logger.debug("django-ormlens: failed to store report.", exc_info=True)
+        logger.debug("django-querylens: failed to store report.", exc_info=True)
 
 
 # ---------------------------------------------------------------------------
@@ -287,14 +287,14 @@ def _store_result(result: AnalysisResult, *, path: str, method: str) -> None:
 
 #: ``dispatch_uid`` prevents duplicate handler connections if this module is
 #: accidentally imported more than once (e.g. in unusual reload scenarios).
-_UID_STARTED = "django_ormlens.signals.on_request_started"
-_UID_FINISHED = "django_ormlens.signals.on_request_finished"
+_UID_STARTED = "django_querylens.signals.on_request_started"
+_UID_FINISHED = "django_querylens.signals.on_request_finished"
 
 request_started.connect(on_request_started, dispatch_uid=_UID_STARTED)
 request_finished.connect(on_request_finished, dispatch_uid=_UID_FINISHED)
 
 logger.debug(
-    "django-ormlens: signal handlers registered (uid=%s, uid=%s).",
+    "django-querylens: signal handlers registered (uid=%s, uid=%s).",
     _UID_STARTED,
     _UID_FINISHED,
 )

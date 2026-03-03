@@ -1,4 +1,4 @@
-"""Tests for django_ormlens.admin module."""
+"""Tests for django_querylens.admin module."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
-from django_ormlens.analyzer import AnalysisResult, N1Detection, SlowQuery
-from django_ormlens.store import StoredReport, get_store
+from django_querylens.analyzer import AnalysisResult, N1Detection, SlowQuery
+from django_querylens.store import StoredReport, get_store
 
 
 @pytest.fixture
@@ -73,14 +73,14 @@ def _make_stored_report(
 
 
 class TestDashboardView:
-    """Tests for the ormlens dashboard view."""
+    """Tests for the querylens dashboard view."""
 
     def test_staff_can_access(self, staff_client: Client) -> None:
-        response = staff_client.get("/admin/ormlens/")
+        response = staff_client.get("/admin/querylens/")
         assert response.status_code == 200
 
     def test_anonymous_redirected(self, anon_client: Client) -> None:
-        response = anon_client.get("/admin/ormlens/")
+        response = anon_client.get("/admin/querylens/")
         assert response.status_code == 302
 
     def test_reports_shown_in_table(self, staff_client: Client) -> None:
@@ -88,7 +88,7 @@ class TestDashboardView:
         store.add(_make_stored_report(path="/api/users/", method="POST"))
         store.add(_make_stored_report(path="/api/items/", method="GET"))
 
-        response = staff_client.get("/admin/ormlens/")
+        response = staff_client.get("/admin/querylens/")
         content = response.content.decode()
 
         assert "/api/users/" in content
@@ -97,13 +97,13 @@ class TestDashboardView:
         assert "GET" in content
 
     def test_empty_state_message(self, staff_client: Client) -> None:
-        response = staff_client.get("/admin/ormlens/")
+        response = staff_client.get("/admin/querylens/")
         content = response.content.decode()
         assert "No reports yet" in content
 
     def test_debug_false_returns_403(self, db: None, settings: object) -> None:
         settings.DEBUG = False  # type: ignore[attr-defined]
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "ENABLED": False,
             "SAMPLE_RATE": 0.0,
         }
@@ -118,7 +118,7 @@ class TestDashboardView:
         client = Client()
         client.force_login(user)
 
-        response = client.get("/admin/ormlens/")
+        response = client.get("/admin/querylens/")
         assert response.status_code == 403
 
     def test_clear_action(self, staff_client: Client) -> None:
@@ -127,7 +127,7 @@ class TestDashboardView:
         store.add(original)
         assert store.count >= 1
 
-        response = staff_client.post("/admin/ormlens/", {"action": "clear"})
+        response = staff_client.post("/admin/querylens/", {"action": "clear"})
         assert response.status_code == 200
         # The original report should be gone. The signal handler may have
         # added a new report for the POST request itself, so we check that
@@ -141,7 +141,7 @@ class TestDashboardView:
 
 
 class TestDetailView:
-    """Tests for the ormlens detail view."""
+    """Tests for the querylens detail view."""
 
     def test_renders_report_detail(self, staff_client: Client) -> None:
         store = get_store()
@@ -150,21 +150,21 @@ class TestDetailView:
         )
         store.add(report)
 
-        response = staff_client.get(f"/admin/ormlens/{report.id}/")
+        response = staff_client.get(f"/admin/querylens/{report.id}/")
         assert response.status_code == 200
         content = response.content.decode()
 
         # HtmlFormatter output should be present
-        assert "django-ormlens" in content
+        assert "django-querylens" in content
         assert "/api/detail-test/" in content
 
     def test_unknown_id_returns_404(self, staff_client: Client) -> None:
-        response = staff_client.get("/admin/ormlens/nonexistent123/")
+        response = staff_client.get("/admin/querylens/nonexistent123/")
         assert response.status_code == 404
 
     def test_debug_false_returns_403(self, db: None, settings: object) -> None:
         settings.DEBUG = False  # type: ignore[attr-defined]
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "ENABLED": False,
             "SAMPLE_RATE": 0.0,
         }
@@ -183,7 +183,7 @@ class TestDetailView:
         report = _make_stored_report()
         store.add(report)
 
-        response = client.get(f"/admin/ormlens/{report.id}/")
+        response = client.get(f"/admin/querylens/{report.id}/")
         assert response.status_code == 403
 
 
@@ -193,14 +193,14 @@ class TestDetailView:
 
 
 class TestApiView:
-    """Tests for the ormlens API reports view."""
+    """Tests for the querylens API reports view."""
 
     def test_returns_json(self, staff_client: Client) -> None:
         store = get_store()
         store.add(_make_stored_report(path="/api/1/"))
         store.add(_make_stored_report(path="/api/2/", n1=True))
 
-        response = staff_client.get("/admin/ormlens/api/reports/")
+        response = staff_client.get("/admin/querylens/api/reports/")
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
 
@@ -216,7 +216,7 @@ class TestApiView:
         )
         store.add(report)
 
-        response = staff_client.get("/admin/ormlens/api/reports/")
+        response = staff_client.get("/admin/querylens/api/reports/")
         data = json.loads(response.content)
         entry = data["reports"][0]
 
@@ -231,7 +231,7 @@ class TestApiView:
 
     def test_debug_false_returns_403(self, db: None, settings: object) -> None:
         settings.DEBUG = False  # type: ignore[attr-defined]
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "ENABLED": False,
             "SAMPLE_RATE": 0.0,
         }
@@ -246,11 +246,11 @@ class TestApiView:
         client = Client()
         client.force_login(user)
 
-        response = client.get("/admin/ormlens/api/reports/")
+        response = client.get("/admin/querylens/api/reports/")
         assert response.status_code == 403
 
     def test_anonymous_redirected(self, anon_client: Client) -> None:
-        response = anon_client.get("/admin/ormlens/api/reports/")
+        response = anon_client.get("/admin/querylens/api/reports/")
         assert response.status_code == 302
 
 
@@ -260,16 +260,16 @@ class TestApiView:
 
 
 class TestUrlResolution:
-    """Tests that ormlens admin URLs are resolvable."""
+    """Tests that querylens admin URLs are resolvable."""
 
     def test_dashboard_url_resolves(self) -> None:
-        url = reverse("admin:ormlens_dashboard")
-        assert url == "/admin/ormlens/"
+        url = reverse("admin:querylens_dashboard")
+        assert url == "/admin/querylens/"
 
     def test_detail_url_resolves(self) -> None:
-        url = reverse("admin:ormlens_detail", kwargs={"report_id": "abc123"})
-        assert url == "/admin/ormlens/abc123/"
+        url = reverse("admin:querylens_detail", kwargs={"report_id": "abc123"})
+        assert url == "/admin/querylens/abc123/"
 
     def test_api_url_resolves(self) -> None:
-        url = reverse("admin:ormlens_api_reports")
-        assert url == "/admin/ormlens/api/reports/"
+        url = reverse("admin:querylens_api_reports")
+        assert url == "/admin/querylens/api/reports/"

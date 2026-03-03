@@ -1,4 +1,4 @@
-"""Tests for django_ormlens.middleware module."""
+"""Tests for django_querylens.middleware module."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import pytest
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.test import RequestFactory
 
-from django_ormlens.middleware import QueryLensMiddleware
+from django_querylens.middleware import QueryLensMiddleware
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -45,22 +45,22 @@ class TestPanelInjection:
     def test_panel_injected_when_enabled(self, settings: object) -> None:
         """Panel should be injected when PANEL=True and DEBUG=True."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         middleware = _make_middleware()
         rf = RequestFactory()
         response = middleware(rf.get("/"))
 
         content = response.content.decode()
-        assert "django-ormlens" in content
-        assert "ormlens-bar" in content
-        assert "ormlens-panel" in content
+        assert "django-querylens" in content
+        assert "querylens-bar" in content
+        assert "querylens-panel" in content
 
     @pytest.mark.django_db
     def test_panel_shows_query_count(self, settings: object) -> None:
         """Panel bar should show query count."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         middleware = _make_middleware()
         rf = RequestFactory()
@@ -74,7 +74,7 @@ class TestPanelInjection:
     def test_panel_shows_time(self, settings: object) -> None:
         """Panel bar should show total time."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         middleware = _make_middleware()
         rf = RequestFactory()
@@ -87,7 +87,7 @@ class TestPanelInjection:
     def test_original_content_preserved(self, settings: object) -> None:
         """Original HTML content should still be present after injection."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         original_body = "<html><body><h1>My Page</h1></body></html>"
         middleware = _make_middleware(_make_html_response(original_body))
@@ -102,7 +102,7 @@ class TestPanelInjection:
     def test_content_length_updated(self, settings: object) -> None:
         """Content-Length header should be updated after injection."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         resp = _make_html_response()
         resp["Content-Length"] = str(len(resp.content))
@@ -125,46 +125,46 @@ class TestPanelGateChecks:
     def test_not_injected_when_panel_false(self, settings: object) -> None:
         """Panel should NOT be injected when PANEL=False."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": False}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": False}  # type: ignore[attr-defined]
 
         middleware = _make_middleware()
         rf = RequestFactory()
         response = middleware(rf.get("/"))
 
         content = response.content.decode()
-        assert "ormlens-bar" not in content
+        assert "querylens-bar" not in content
 
     @pytest.mark.django_db
     def test_not_injected_when_panel_missing(self, settings: object) -> None:
         """Panel should NOT be injected when PANEL setting is absent."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {}  # type: ignore[attr-defined]
 
         middleware = _make_middleware()
         rf = RequestFactory()
         response = middleware(rf.get("/"))
 
         content = response.content.decode()
-        assert "ormlens-bar" not in content
+        assert "querylens-bar" not in content
 
     @pytest.mark.django_db
     def test_not_injected_when_debug_false(self, settings: object) -> None:
         """Panel should NOT be injected when DEBUG=False."""
         settings.DEBUG = False  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         middleware = _make_middleware()
         rf = RequestFactory()
         response = middleware(rf.get("/"))
 
         content = response.content.decode()
-        assert "ormlens-bar" not in content
+        assert "querylens-bar" not in content
 
     @pytest.mark.django_db
     def test_not_injected_for_json_response(self, settings: object) -> None:
         """Panel should NOT be injected for JSON responses."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         json_resp = JsonResponse({"key": "value"})
         middleware = _make_middleware(json_resp)
@@ -172,13 +172,13 @@ class TestPanelGateChecks:
         response = middleware(rf.get("/"))
 
         content = response.content.decode()
-        assert "ormlens-bar" not in content
+        assert "querylens-bar" not in content
 
     @pytest.mark.django_db
     def test_not_injected_for_plain_text(self, settings: object) -> None:
         """Panel should NOT be injected for plain text responses."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         text_resp = HttpResponse("plain text", content_type="text/plain")
         middleware = _make_middleware(text_resp)
@@ -186,13 +186,13 @@ class TestPanelGateChecks:
         response = middleware(rf.get("/"))
 
         content = response.content.decode()
-        assert "ormlens-bar" not in content
+        assert "querylens-bar" not in content
 
     @pytest.mark.django_db
     def test_not_injected_when_no_body_tag(self, settings: object) -> None:
         """Panel should NOT be injected when no </body> tag is present."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         # HTML fragment without </body>
         resp = HttpResponse("<div>No body tag</div>", content_type="text/html")
@@ -201,13 +201,13 @@ class TestPanelGateChecks:
         response = middleware(rf.get("/"))
 
         content = response.content.decode()
-        assert "ormlens-bar" not in content
+        assert "querylens-bar" not in content
 
     @pytest.mark.django_db
     def test_not_injected_for_streaming_response(self, settings: object) -> None:
         """Panel should NOT be injected for streaming responses."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         def stream_content():  # type: ignore[no-untyped-def]
             yield b"<html><body>"
@@ -227,7 +227,7 @@ class TestPanelGateChecks:
     def test_not_injected_for_empty_response(self, settings: object) -> None:
         """Panel should NOT be injected for an empty HTML response."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         empty_resp = HttpResponse("", content_type="text/html")
         middleware = _make_middleware(empty_resp)
@@ -235,7 +235,7 @@ class TestPanelGateChecks:
         response = middleware(rf.get("/"))
 
         content = response.content.decode()
-        assert "ormlens-bar" not in content
+        assert "querylens-bar" not in content
 
 
 # ---------------------------------------------------------------------------
@@ -250,7 +250,7 @@ class TestPanelWarnings:
     def test_panel_shows_n1_warning(self, settings: object) -> None:
         """Panel should show N+1 warning badge when N+1 is detected."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "PANEL": True,
             "N1_THRESHOLD": 2,
         }
@@ -270,13 +270,13 @@ class TestPanelWarnings:
 
         content = response.content.decode()
         assert "N+1" in content
-        assert "ormlens-bar-error" in content
+        assert "querylens-bar-error" in content
 
     @pytest.mark.django_db
     def test_panel_shows_slow_query_warning(self, settings: object) -> None:
         """Panel should show slow query badge when slow queries exist."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "PANEL": True,
             "SLOW_QUERY_MS": 0,  # Flag everything as slow
             "N1_THRESHOLD": 999,  # Don't trigger N+1
@@ -294,13 +294,13 @@ class TestPanelWarnings:
 
         content = response.content.decode()
         assert "Slow" in content
-        assert "ormlens-bar-warn" in content
+        assert "querylens-bar-warn" in content
 
     @pytest.mark.django_db
     def test_panel_green_when_no_issues(self, settings: object) -> None:
         """Panel should use green status when no N+1 or slow queries."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "PANEL": True,
             "N1_THRESHOLD": 999,
             "SLOW_QUERY_MS": 99999,
@@ -326,7 +326,7 @@ class TestPanelEdgeCases:
     def test_case_insensitive_body_tag(self, settings: object) -> None:
         """Panel should handle case-insensitive </BODY> tags."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         resp = HttpResponse(
             "<html><BODY><h1>Test</h1></BODY></html>",
@@ -337,13 +337,13 @@ class TestPanelEdgeCases:
         response = middleware(rf.get("/"))
 
         content = response.content.decode()
-        assert "ormlens-bar" in content
+        assert "querylens-bar" in content
 
     @pytest.mark.django_db
     def test_panel_html_is_self_contained(self, settings: object) -> None:
         """Panel HTML should include inline CSS and JS, no external deps."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
         middleware = _make_middleware()
         rf = RequestFactory()
@@ -358,31 +358,31 @@ class TestPanelEdgeCases:
 
     @pytest.mark.django_db
     def test_panel_css_prefixed(self, settings: object) -> None:
-        """All CSS classes should be prefixed with 'ormlens-'."""
+        """All CSS classes should be prefixed with 'querylens-'."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
-        from django_ormlens.analyzer import AnalysisResult
-        from django_ormlens.middleware import QueryLensMiddleware
+        from django_querylens.analyzer import AnalysisResult
+        from django_querylens.middleware import QueryLensMiddleware
 
         panel_html = QueryLensMiddleware._build_panel(AnalysisResult())
-        # Extract class names — every class attribute value should start with ormlens-
+        # Extract class names — every class attribute value should start with querylens-
         import re
 
         classes = re.findall(r'class="([^"]*)"', panel_html)
         for class_attr in classes:
             for cls in class_attr.split():
-                assert cls.startswith("ormlens-"), (
-                    f"CSS class '{cls}' is not prefixed with 'ormlens-'"
+                assert cls.startswith("querylens-"), (
+                    f"CSS class '{cls}' is not prefixed with 'querylens-'"
                 )
 
     @pytest.mark.django_db
     def test_xss_safety(self, settings: object) -> None:
         """SQL content should be HTML-escaped in the panel."""
         settings.DEBUG = True  # type: ignore[attr-defined]
-        settings.ORMLENS = {"PANEL": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"PANEL": True}  # type: ignore[attr-defined]
 
-        from django_ormlens.analyzer import AnalysisResult
+        from django_querylens.analyzer import AnalysisResult
 
         result = AnalysisResult(
             queries=[

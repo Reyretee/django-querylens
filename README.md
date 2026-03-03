@@ -1,4 +1,4 @@
-# django-ormlens
+# django-querylens
 
 Django ORM query visualizer with automatic N+1 detection, slow query identification, and terminal/HTML reports.
 
@@ -9,8 +9,8 @@ Django ORM query visualizer with automatic N+1 detection, slow query identificat
 - **View Decorator** — `@explain_query` wraps views with zero-effort query profiling
 - **Automatic Signal-Based Capture** — Per-request analysis via Django signals
 - **Terminal & HTML Reports** — Box-drawn terminal tables or styled HTML output
-- **Management Command** — `python manage.py ormlens_report` for CLI reporting
-- **Live Admin Dashboard** — Real-time query history at `/admin/ormlens/`
+- **Management Command** — `python manage.py querylens_report` for CLI reporting
+- **Live Admin Dashboard** — Real-time query history at `/admin/querylens/`
 - **Debug Panel** — Collapsible overlay injected into HTML responses
 - **Production Safe** — Configurable sampling rate, zero overhead when disabled
 - **Thread Safe** — All state stored in `threading.local()`
@@ -19,13 +19,13 @@ Django ORM query visualizer with automatic N+1 detection, slow query identificat
 ## Installation
 
 ```bash
-pip install django-ormlens
+pip install django-querylens
 ```
 
 For colored terminal output:
 
 ```bash
-pip install django-ormlens[color]
+pip install django-querylens[color]
 ```
 
 ## Quick Start
@@ -36,7 +36,7 @@ pip install django-ormlens[color]
 # settings.py
 INSTALLED_APPS = [
     ...
-    'django_ormlens',
+    'django_querylens',
 ]
 ```
 
@@ -44,7 +44,7 @@ INSTALLED_APPS = [
 
 ```python
 # settings.py
-ORMLENS = {
+QUERYLENS = {
     'ENABLED': True,           # Master switch
     'SAMPLE_RATE': 1.0,        # 1.0 = all requests, 0.1 = 10% sampling
     'N1_THRESHOLD': 3,         # Min repeated queries to flag N+1
@@ -57,7 +57,7 @@ ORMLENS = {
 ### 3. Use the decorator on views
 
 ```python
-from django_ormlens import explain_query
+from django_querylens import explain_query
 
 @explain_query
 def article_list(request):
@@ -70,7 +70,7 @@ def article_list(request):
 ### 4. Or use the context manager directly
 
 ```python
-from django_ormlens import QueryAnalyzer
+from django_querylens import QueryAnalyzer
 
 analyzer = QueryAnalyzer()
 with analyzer.capture() as result:
@@ -87,30 +87,30 @@ for detection in result.n_plus_one_detected:
 ### 5. Generate a CLI report
 
 ```bash
-python manage.py ormlens_report --top 10
-python manage.py ormlens_report --format html > report.html
+python manage.py querylens_report --top 10
+python manage.py querylens_report --format html > report.html
 ```
 
 ## Automatic Per-Request Analysis
 
-When `django_ormlens` is in `INSTALLED_APPS` and `ORMLENS['ENABLED']` is `True`, signal handlers automatically capture and log query analysis for every HTTP request (respecting `SAMPLE_RATE`).
+When `django_querylens` is in `INSTALLED_APPS` and `QUERYLENS['ENABLED']` is `True`, signal handlers automatically capture and log query analysis for every HTTP request (respecting `SAMPLE_RATE`).
 
-With `colorama` installed (`pip install django-ormlens[color]`), you get colored box-drawn output in the terminal. Without it, structured plain-text log lines are emitted.
+With `colorama` installed (`pip install django-querylens[color]`), you get colored box-drawn output in the terminal. Without it, structured plain-text log lines are emitted.
 
 All captured reports are also stored in memory and accessible via the admin dashboard (see below).
 
 ## Admin Dashboard
 
-django-ormlens includes a live query history dashboard accessible at `/admin/ormlens/`. It requires staff access and `DEBUG = True`.
+django-querylens includes a live query history dashboard accessible at `/admin/querylens/`. It requires staff access and `DEBUG = True`.
 
 ### What it shows
 
-- **Dashboard** (`/admin/ormlens/`) — A table of recent requests with color-coded rows:
+- **Dashboard** (`/admin/querylens/`) — A table of recent requests with color-coded rows:
   - Red border = N+1 detected
   - Orange border = slow queries
   - Green border = clean
-- **Detail** (`/admin/ormlens/<report_id>/`) — Full HTML-formatted analysis for a single request
-- **API** (`/admin/ormlens/api/reports/`) — JSON endpoint for programmatic access or auto-refresh
+- **Detail** (`/admin/querylens/<report_id>/`) — Full HTML-formatted analysis for a single request
+- **API** (`/admin/querylens/api/reports/`) — JSON endpoint for programmatic access or auto-refresh
 
 ### Features
 
@@ -124,8 +124,8 @@ No extra setup is needed — the dashboard URLs are automatically registered whe
 ## Custom Output Function
 
 ```python
-from django_ormlens import explain_query
-from django_ormlens.analyzer import AnalysisResult
+from django_querylens import explain_query
+from django_querylens.analyzer import AnalysisResult
 
 def send_to_monitoring(result: AnalysisResult, view_name: str) -> None:
     statsd.gauge('django.queries.count', result.total_count, tags=[view_name])
@@ -140,7 +140,7 @@ def my_view(request):
 ## Formatters
 
 ```python
-from django_ormlens.formatters import get_formatter, TerminalFormatter, HtmlFormatter
+from django_querylens.formatters import get_formatter, TerminalFormatter, HtmlFormatter
 
 # Auto-detect from settings
 formatter = get_formatter()
@@ -153,7 +153,7 @@ html_output = HtmlFormatter().format(result)
 
 ## Debug Panel
 
-django-ormlens includes a lightweight debug panel that automatically injects a collapsible overlay at the bottom of every HTML response — similar to Django Debug Toolbar but focused on query analysis.
+django-querylens includes a lightweight debug panel that automatically injects a collapsible overlay at the bottom of every HTML response — similar to Django Debug Toolbar but focused on query analysis.
 
 ### Setup
 
@@ -161,10 +161,10 @@ django-ormlens includes a lightweight debug panel that automatically injects a c
 # settings.py
 MIDDLEWARE = [
     ...
-    'django_ormlens.middleware.QueryLensMiddleware',
+    'django_querylens.middleware.QueryLensMiddleware',
 ]
 
-ORMLENS = {
+QUERYLENS = {
     'PANEL': True,  # Enable the debug panel (default: False)
     ...
 }
@@ -172,7 +172,7 @@ ORMLENS = {
 
 The panel is **only injected** when all of the following are true:
 
-- `ORMLENS['PANEL']` is `True`
+- `QUERYLENS['PANEL']` is `True`
 - `settings.DEBUG` is `True` (never in production)
 - Response `Content-Type` is `text/html`
 - Response body contains a `</body>` tag
@@ -185,14 +185,14 @@ The panel is **only injected** when all of the following are true:
 - **Slow Queries**: Queries exceeding `SLOW_QUERY_MS` threshold (orange)
 - **All Queries**: Collapsible list of every query with execution time
 
-The panel is self-contained (inline CSS, no external dependencies) with a dark theme and all CSS classes prefixed with `ormlens-` to avoid conflicts.
+The panel is self-contained (inline CSS, no external dependencies) with a dark theme and all CSS classes prefixed with `querylens-` to avoid conflicts.
 
 ## Production Configuration
 
 For production, use a low sample rate to minimize overhead:
 
 ```python
-ORMLENS = {
+QUERYLENS = {
     'ENABLED': True,
     'SAMPLE_RATE': 0.01,       # Analyze 1% of requests
     'N1_THRESHOLD': 5,
@@ -205,7 +205,7 @@ ORMLENS = {
 To completely disable (zero overhead):
 
 ```python
-ORMLENS = {
+QUERYLENS = {
     'ENABLED': False,
 }
 ```

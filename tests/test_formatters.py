@@ -1,11 +1,11 @@
-"""Tests for django_ormlens.formatters module."""
+"""Tests for django_querylens.formatters module."""
 
 from __future__ import annotations
 
 import pytest
 
-from django_ormlens.analyzer import AnalysisResult, N1Detection, SlowQuery
-from django_ormlens.formatters import (
+from django_querylens.analyzer import AnalysisResult, N1Detection, SlowQuery
+from django_querylens.formatters import (
     BaseFormatter,
     HtmlFormatter,
     TerminalFormatter,
@@ -181,7 +181,7 @@ class TestHtmlFormatter:
     def test_format_empty_result(self, empty_result: AnalysisResult) -> None:
         formatter = HtmlFormatter()
         output = formatter.format(empty_result)
-        assert '<div class="ormlens-report">' in output
+        assert '<div class="querylens-report">' in output
         assert "Query Analysis Report" in output
         assert "<table" in output
 
@@ -207,7 +207,7 @@ class TestHtmlFormatter:
         formatter = HtmlFormatter()
         output = formatter.format(empty_result)
         assert "<style>" in output
-        assert "ormlens-report" in output
+        assert "querylens-report" in output
 
     def test_html_escapes_sql(self) -> None:
         """SQL with HTML special characters should be escaped."""
@@ -241,8 +241,8 @@ class TestHtmlFormatter:
     def test_badge_css_classes(self, full_result: AnalysisResult) -> None:
         formatter = HtmlFormatter()
         output = formatter.format(full_result)
-        assert "ormlens-badge-error" in output
-        assert "ormlens-badge-warn" in output
+        assert "querylens-badge-error" in output
+        assert "querylens-badge-warn" in output
 
 
 # ---------------------------------------------------------------------------
@@ -274,11 +274,11 @@ class TestGetFormatter:
             get_formatter("pdf")
 
     def test_reads_from_settings(self, settings: object) -> None:
-        settings.ORMLENS = {"OUTPUT": "html"}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"OUTPUT": "html"}  # type: ignore[attr-defined]
         formatter = get_formatter()
         assert isinstance(formatter, HtmlFormatter)
 
     def test_defaults_to_terminal(self, settings: object) -> None:
-        settings.ORMLENS = {}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {}  # type: ignore[attr-defined]
         formatter = get_formatter()
         assert isinstance(formatter, TerminalFormatter)

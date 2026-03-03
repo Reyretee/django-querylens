@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "django-ormlens"
+name = "django-querylens"
 version = "0.1.0"
 description = "Django ORM query visualizer with N+1 detection and index suggestions"
 readme = "README.md"
@@ -48,7 +48,7 @@ Repository = "https://github.com/Reyretee/django-querylens"
 Issues = "https://github.com/Reyretee/django-querylens/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["django_ormlens"]
+packages = ["django_querylens"]
 
 [tool.ruff]
 target-version = "py39"
@@ -59,15 +59,15 @@ select = ["E", "F", "I", "N", "UP"]
 ignore = []
 
 [tool.ruff.lint.isort]
-known-first-party = ["django_ormlens"]
+known-first-party = ["django_querylens"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
 python_files = ["test_*.py"]
-addopts = "--cov=django_ormlens --cov-report=term-missing"
+addopts = "--cov=django_querylens --cov-report=term-missing"
 
 [tool.coverage.run]
-source = ["django_ormlens"]
+source = ["django_querylens"]
 omit = ["*/migrations/*", "*/tests/*"]
 
 [tool.coverage.report]

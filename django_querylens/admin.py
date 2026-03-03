@@ -1,18 +1,18 @@
-"""Django admin views for the django-ormlens live query dashboard.
+"""Django admin views for the django-querylens live query dashboard.
 
 This module provides three admin-protected views:
 
-* **Dashboard** (``/admin/ormlens/``) — a table of recent request reports with
+* **Dashboard** (``/admin/querylens/``) — a table of recent request reports with
   colour-coded rows indicating N+1 (red), slow (orange), or clean (green).
-* **Detail** (``/admin/ormlens/<report_id>/``) — the full HTML-formatted
+* **Detail** (``/admin/querylens/<report_id>/``) — the full HTML-formatted
   analysis for a single report.
-* **API** (``/admin/ormlens/api/reports/``) — a JSON endpoint for
+* **API** (``/admin/querylens/api/reports/``) — a JSON endpoint for
   auto-refresh.
 
 All views require staff access and ``DEBUG = True``.
 
-Setup happens automatically via :meth:`~django_ormlens.apps.DjangoOrmLensConfig.ready`
-which patches ``AdminSite.get_urls`` to include the ormlens URL patterns.
+Setup happens automatically via :meth:`~django_querylens.apps.DjangoQueryLensConfig.ready`
+which patches ``AdminSite.get_urls`` to include the querylens URL patterns.
 """
 
 from __future__ import annotations
@@ -32,8 +32,8 @@ from django.http import (
 from django.middleware.csrf import get_token
 from django.urls import URLPattern, path
 
-from django_ormlens.formatters import HtmlFormatter
-from django_ormlens.store import get_store
+from django_querylens.formatters import HtmlFormatter
+from django_querylens.store import get_store
 
 # Type alias for view functions.
 _ViewFunc = Callable[..., HttpResponse]
@@ -116,24 +116,24 @@ tbody tr:last-child td { border-bottom: none; }
   background: #161b22; border: 1px solid #21262d;
   border-radius: 6px; padding: 20px; margin-top: 12px;
 }
-.detail-report .ormlens-report { max-width: 100%; }
+.detail-report .querylens-report { max-width: 100%; }
 .detail-report h2 {
   color: #f0f6fc; border-bottom-color: #21262d; font-size: 18px;
 }
 .detail-report h3 { color: #c9d1d9; font-size: 15px; }
-.detail-report .ormlens-table {
+.detail-report .querylens-table {
   background: #0d1117; border: 1px solid #21262d;
 }
-.detail-report .ormlens-table th {
+.detail-report .querylens-table th {
   background: #21262d; color: #8b949e;
 }
-.detail-report .ormlens-table td {
+.detail-report .querylens-table td {
   border-bottom-color: #21262d; color: #c9d1d9;
 }
-.detail-report .ormlens-table tr:nth-child(even) {
+.detail-report .querylens-table tr:nth-child(even) {
   background: #161b22;
 }
-.detail-report .ormlens-table tr:hover { background: #1c2128; }
+.detail-report .querylens-table tr:hover { background: #1c2128; }
 .count { font-variant-numeric: tabular-nums; }
 """
 
@@ -143,7 +143,7 @@ def _require_debug(view_func: _ViewFunc) -> _ViewFunc:
 
     def wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if not settings.DEBUG:
-            return HttpResponseForbidden("ormlens dashboard requires DEBUG=True.")
+            return HttpResponseForbidden("querylens dashboard requires DEBUG=True.")
         return view_func(request, *args, **kwargs)
 
     wrapper.__name__ = getattr(view_func, "__name__", "wrapped")
@@ -157,7 +157,7 @@ def _require_debug(view_func: _ViewFunc) -> _ViewFunc:
 
 
 @_require_debug
-def ormlens_dashboard_view(request: HttpRequest) -> HttpResponse:
+def querylens_dashboard_view(request: HttpRequest) -> HttpResponse:
     """Render the main dashboard showing recent request reports.
 
     Args:
@@ -208,7 +208,7 @@ def ormlens_dashboard_view(request: HttpRequest) -> HttpResponse:
             f'<td class="count">{result.total_time:.1f}</td>'
             f"<td>{n1_badge}</td>"
             f"<td>{slow_badge}</td>"
-            f'<td><a href="/admin/ormlens/{esc(report.id)}/">'
+            f'<td><a href="/admin/querylens/{esc(report.id)}/">'
             f"view</a></td>"
             f"</tr>\n"
         )
@@ -223,13 +223,13 @@ def ormlens_dashboard_view(request: HttpRequest) -> HttpResponse:
     html_content = f"""<!DOCTYPE html>
 <html>
 <head>
-<title>django-ormlens Dashboard</title>
+<title>django-querylens Dashboard</title>
 <style>{_DARK_CSS}</style>
 </head>
 <body>
-<h1><span class="accent">django-ormlens</span> &mdash; Query Dashboard</h1>
+<h1><span class="accent">django-querylens</span> &mdash; Query Dashboard</h1>
 <div class="actions">
-  <a href="/admin/ormlens/" class="btn btn-refresh">Refresh</a>
+  <a href="/admin/querylens/" class="btn btn-refresh">Refresh</a>
   <form method="post" style="display:inline">
     <input type="hidden" name="csrfmiddlewaretoken"
            value="{get_token(request)}">
@@ -262,7 +262,7 @@ def ormlens_dashboard_view(request: HttpRequest) -> HttpResponse:
 
 
 @_require_debug
-def ormlens_detail_view(
+def querylens_detail_view(
     request: HttpRequest, report_id: str
 ) -> HttpResponse:
     """Render the detail view for a single report.
@@ -288,11 +288,11 @@ def ormlens_detail_view(
     html_content = f"""<!DOCTYPE html>
 <html>
 <head>
-<title>django-ormlens &mdash; {esc(report.path)}</title>
+<title>django-querylens &mdash; {esc(report.path)}</title>
 <style>{_DARK_CSS}</style>
 </head>
 <body>
-<a href="/admin/ormlens/" class="back">&larr; Back to Dashboard</a>
+<a href="/admin/querylens/" class="back">&larr; Back to Dashboard</a>
 <h1>{esc(report.method)} <span class="accent">{esc(report.path)}</span></h1>
 <div class="meta">{esc(report.id)} &middot; {esc(ts)}</div>
 <div class="detail-report">
@@ -309,7 +309,7 @@ def ormlens_detail_view(
 
 
 @_require_debug
-def ormlens_api_reports_view(request: HttpRequest) -> JsonResponse:
+def querylens_api_reports_view(request: HttpRequest) -> JsonResponse:
     """Return all stored reports as JSON for auto-refresh.
 
     Args:
@@ -344,10 +344,10 @@ def ormlens_api_reports_view(request: HttpRequest) -> JsonResponse:
 
 
 def get_admin_urls() -> list[URLPattern]:
-    """Return URL patterns for the ormlens admin views.
+    """Return URL patterns for the querylens admin views.
 
     These patterns are designed to be prepended to ``AdminSite.get_urls()``
-    so they are served under ``/admin/ormlens/``.
+    so they are served under ``/admin/querylens/``.
 
     Returns:
         A list of :class:`~django.urls.URLPattern` instances.
@@ -356,18 +356,18 @@ def get_admin_urls() -> list[URLPattern]:
 
     return [
         path(
-            "ormlens/api/reports/",
-            site.admin_view(ormlens_api_reports_view),
-            name="ormlens_api_reports",
+            "querylens/api/reports/",
+            site.admin_view(querylens_api_reports_view),
+            name="querylens_api_reports",
         ),
         path(
-            "ormlens/<str:report_id>/",
-            site.admin_view(ormlens_detail_view),
-            name="ormlens_detail",
+            "querylens/<str:report_id>/",
+            site.admin_view(querylens_detail_view),
+            name="querylens_detail",
         ),
         path(
-            "ormlens/",
-            site.admin_view(ormlens_dashboard_view),
-            name="ormlens_dashboard",
+            "querylens/",
+            site.admin_view(querylens_dashboard_view),
+            name="querylens_dashboard",
         ),
     ]

@@ -1,4 +1,4 @@
-"""Core query analysis engine for django-ormlens.
+"""Core query analysis engine for django-querylens.
 
 This module provides the ``QueryAnalyzer`` class and supporting data
 structures that capture Django ORM queries, detect N+1 patterns, and
@@ -6,7 +6,7 @@ identify slow queries — all in a thread-safe manner.
 
 Typical usage::
 
-    from django_ormlens.analyzer import QueryAnalyzer
+    from django_querylens.analyzer import QueryAnalyzer
 
     analyzer = QueryAnalyzer()
     with analyzer.capture() as result:
@@ -37,10 +37,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def get_ormlens_setting(key: str, default: Any = None) -> Any:
-    """Retrieve a value from the ``ORMLENS`` settings dictionary.
+def get_querylens_setting(key: str, default: Any = None) -> Any:
+    """Retrieve a value from the ``QUERYLENS`` settings dictionary.
 
-    Falls back to *default* when the key is absent or the ``ORMLENS``
+    Falls back to *default* when the key is absent or the ``QUERYLENS``
     setting block itself has not been defined.
 
     Args:
@@ -51,11 +51,11 @@ def get_ormlens_setting(key: str, default: Any = None) -> Any:
         The configured value, or *default*.
 
     Example:
-        >>> get_ormlens_setting("N1_THRESHOLD", 3)
+        >>> get_querylens_setting("N1_THRESHOLD", 3)
         3
     """
-    ormlens_config: dict[str, Any] = getattr(settings, "ORMLENS", {})
-    return ormlens_config.get(key, default)
+    querylens_config: dict[str, Any] = getattr(settings, "QUERYLENS", {})
+    return querylens_config.get(key, default)
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +145,7 @@ _FROM_TABLE_RE = re.compile(r'\bFROM\s+"?(\w+)"?', re.IGNORECASE)
 class QueryAnalyzer:
     """Captures and analyses Django ORM queries within a code block.
 
-    ``QueryAnalyzer`` is the primary public interface of django-ormlens.
+    ``QueryAnalyzer`` is the primary public interface of django-querylens.
     It wraps Django's built-in ``connection.queries`` list to collect
     executed SQL statements, then runs heuristic detectors for:
 
@@ -155,7 +155,7 @@ class QueryAnalyzer:
     The class is thread-safe: each thread maintains its own capture state
     via :mod:`threading.local`.
 
-    Settings (configured via ``ORMLENS`` in ``settings.py``):
+    Settings (configured via ``QUERYLENS`` in ``settings.py``):
 
     +------------------+----------+--------------------------------------------+
     | Key              | Default  | Description                                |
@@ -187,9 +187,9 @@ class QueryAnalyzer:
     # ------------------------------------------------------------------
 
     def is_enabled(self) -> bool:
-        """Return whether django-ormlens analysis is currently enabled.
+        """Return whether django-querylens analysis is currently enabled.
 
-        Reads the ``ORMLENS["ENABLED"]`` setting.  When ``False`` the
+        Reads the ``QUERYLENS["ENABLED"]`` setting.  When ``False`` the
         :meth:`capture` context manager becomes a no-op.
 
         Returns:
@@ -200,7 +200,7 @@ class QueryAnalyzer:
             >>> analyzer.is_enabled()
             True
         """
-        return bool(get_ormlens_setting("ENABLED", True))
+        return bool(get_querylens_setting("ENABLED", True))
 
     @contextmanager
     def capture(self) -> Generator[AnalysisResult, None, None]:
@@ -249,12 +249,12 @@ class QueryAnalyzer:
                 settings.DEBUG = True
                 debug_patched = True
                 logger.debug(
-                    "django-ormlens: DEBUG temporarily enabled to allow "
+                    "django-querylens: DEBUG temporarily enabled to allow "
                     "connection.queries capture."
                 )
 
             reset_queries()
-            logger.debug("django-ormlens: query capture started.")
+            logger.debug("django-querylens: query capture started.")
 
             yield result
 
@@ -265,7 +265,7 @@ class QueryAnalyzer:
 
             if debug_patched:
                 settings.DEBUG = original_debug
-                logger.debug("django-ormlens: DEBUG restored to %s.", original_debug)
+                logger.debug("django-querylens: DEBUG restored to %s.", original_debug)
 
             # Populate the result in-place so the caller's reference is valid.
             populated = self.analyze(raw_queries)
@@ -277,7 +277,7 @@ class QueryAnalyzer:
             result.has_n_plus_one = populated.has_n_plus_one
 
             logger.debug(
-                "django-ormlens: capture finished. "
+                "django-querylens: capture finished. "
                 "total_count=%d total_time=%.3fms n_plus_one=%s",
                 result.total_count,
                 result.total_time,
@@ -297,7 +297,7 @@ class QueryAnalyzer:
 
         The detector extracts the primary table name from each query's
         ``FROM`` clause and counts occurrences.  Any table that appears in
-        at least ``ORMLENS["N1_THRESHOLD"]`` queries is flagged.
+        at least ``QUERYLENS["N1_THRESHOLD"]`` queries is flagged.
 
         Args:
             queries: List of query dicts as returned by
@@ -319,7 +319,7 @@ class QueryAnalyzer:
             >>> detections[0].table
             'myapp_post'
         """
-        threshold: int = int(get_ormlens_setting("N1_THRESHOLD", 3))
+        threshold: int = int(get_querylens_setting("N1_THRESHOLD", 3))
         table_counts: dict[str, int] = {}
 
         for query in queries:
@@ -339,7 +339,7 @@ class QueryAnalyzer:
 
         if detections:
             logger.warning(
-                "django-ormlens: N+1 detected on table(s): %s",
+                "django-querylens: N+1 detected on table(s): %s",
                 ", ".join(f"{d.table} ({d.count}x)" for d in detections),
             )
 
@@ -356,7 +356,7 @@ class QueryAnalyzer:
 
         Returns:
             A list of :class:`SlowQuery` instances for every query that
-            exceeded ``ORMLENS["SLOW_QUERY_MS"]`` milliseconds, sorted
+            exceeded ``QUERYLENS["SLOW_QUERY_MS"]`` milliseconds, sorted
             slowest-first.
 
         Example:
@@ -366,7 +366,7 @@ class QueryAnalyzer:
             >>> slow[0].time_ms
             200.0
         """
-        threshold_ms: float = float(get_ormlens_setting("SLOW_QUERY_MS", 100))
+        threshold_ms: float = float(get_querylens_setting("SLOW_QUERY_MS", 100))
         slow: list[SlowQuery] = []
 
         for query in queries:
@@ -376,7 +376,7 @@ class QueryAnalyzer:
                 time_ms = float(raw_time) * 1000.0
             except (ValueError, TypeError):
                 logger.debug(
-                    "django-ormlens: could not parse query time %r; skipping.",
+                    "django-querylens: could not parse query time %r; skipping.",
                     raw_time,
                 )
                 continue
@@ -384,7 +384,7 @@ class QueryAnalyzer:
             if time_ms >= threshold_ms:
                 slow.append(SlowQuery(sql=sql, time_ms=time_ms))
                 logger.warning(
-                    "django-ormlens: slow query detected (%.1fms): %.120s",
+                    "django-querylens: slow query detected (%.1fms): %.120s",
                     time_ms,
                     sql,
                 )
@@ -419,7 +419,7 @@ class QueryAnalyzer:
             * ``has_n_plus_one`` — ``True`` when at least one N+1 was found.
 
         Example:
-            >>> from django_ormlens.analyzer import QueryAnalyzer
+            >>> from django_querylens.analyzer import QueryAnalyzer
             >>> analyzer = QueryAnalyzer()
             >>> result = analyzer.analyze([])
             >>> result.total_count

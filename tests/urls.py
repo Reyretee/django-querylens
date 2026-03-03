@@ -1,4 +1,4 @@
-"""Root URL configuration for the django-ormlens test suite."""
+"""Root URL configuration for the django-querylens test suite."""
 
 from __future__ import annotations
 

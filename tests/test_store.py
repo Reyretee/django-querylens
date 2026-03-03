@@ -1,4 +1,4 @@
-"""Tests for django_ormlens.store module."""
+"""Tests for django_querylens.store module."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from django_ormlens.analyzer import AnalysisResult
-from django_ormlens.store import ReportStore, StoredReport, get_store
+from django_querylens.analyzer import AnalysisResult
+from django_querylens.store import ReportStore, StoredReport, get_store
 
 # ---------------------------------------------------------------------------
 # StoredReport dataclass
@@ -56,7 +56,7 @@ class TestReportStore:
     @pytest.fixture(autouse=True)
     def _small_store(self, settings: object) -> None:
         """Configure a small store for testing."""
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "MAX_STORED_REPORTS": 5,
         }
 

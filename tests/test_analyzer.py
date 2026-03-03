@@ -1,4 +1,4 @@
-"""Tests for django_ormlens.analyzer module."""
+"""Tests for django_querylens.analyzer module."""
 
 from __future__ import annotations
 
@@ -6,41 +6,41 @@ import pytest
 from django.contrib.auth.models import User
 from django.db import connection, reset_queries
 
-from django_ormlens.analyzer import (
+from django_querylens.analyzer import (
     AnalysisResult,
     N1Detection,
     QueryAnalyzer,
     SlowQuery,
-    get_ormlens_setting,
+    get_querylens_setting,
 )
 
 
 # ---------------------------------------------------------------------------
-# get_ormlens_setting
+# get_querylens_setting
 # ---------------------------------------------------------------------------
 
 
-class TestGetOrmlensSetting:
+class TestGetQuerlensSetting:
     """Tests for the settings helper function."""
 
     def test_returns_configured_value(self, settings: object) -> None:
-        settings.ORMLENS = {"ENABLED": False}  # type: ignore[attr-defined]
-        assert get_ormlens_setting("ENABLED") is False
+        settings.QUERYLENS = {"ENABLED": False}  # type: ignore[attr-defined]
+        assert get_querylens_setting("ENABLED") is False
 
     def test_returns_default_when_key_missing(self, settings: object) -> None:
-        settings.ORMLENS = {}  # type: ignore[attr-defined]
-        assert get_ormlens_setting("NONEXISTENT", "fallback") == "fallback"
+        settings.QUERYLENS = {}  # type: ignore[attr-defined]
+        assert get_querylens_setting("NONEXISTENT", "fallback") == "fallback"
 
-    def test_returns_default_when_ormlens_block_missing(
+    def test_returns_default_when_querylens_block_missing(
         self, settings: object
     ) -> None:
-        if hasattr(settings, "ORMLENS"):
-            delattr(settings, "ORMLENS")
-        assert get_ormlens_setting("ENABLED", True) is True
+        if hasattr(settings, "QUERYLENS"):
+            delattr(settings, "QUERYLENS")
+        assert get_querylens_setting("ENABLED", True) is True
 
     def test_returns_none_default(self, settings: object) -> None:
-        settings.ORMLENS = {}  # type: ignore[attr-defined]
-        assert get_ormlens_setting("MISSING") is None
+        settings.QUERYLENS = {}  # type: ignore[attr-defined]
+        assert get_querylens_setting("MISSING") is None
 
 
 # ---------------------------------------------------------------------------
@@ -91,12 +91,12 @@ class TestIsEnabled:
         assert analyzer.is_enabled() is True
 
     def test_disabled_when_setting_false(self, settings: object) -> None:
-        settings.ORMLENS = {"ENABLED": False}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"ENABLED": False}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         assert analyzer.is_enabled() is False
 
     def test_enabled_when_setting_true(self, settings: object) -> None:
-        settings.ORMLENS = {"ENABLED": True}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"ENABLED": True}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         assert analyzer.is_enabled() is True
 
@@ -127,7 +127,7 @@ class TestCapture:
 
     def test_capture_works_even_when_disabled(self, settings: object) -> None:
         """capture() should always work — ENABLED only controls signals."""
-        settings.ORMLENS = {"ENABLED": False}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"ENABLED": False}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         assert analyzer.is_enabled() is False
         # capture() still works despite ENABLED=False
@@ -182,7 +182,7 @@ class TestDetectNPlusOne:
     """Tests for N+1 detection logic."""
 
     def test_detects_repeated_table_access(self, settings: object) -> None:
-        settings.ORMLENS = {"N1_THRESHOLD": 2}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"N1_THRESHOLD": 2}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         queries = [
             {"sql": 'SELECT * FROM "auth_user"', "time": "0.001"},
@@ -195,7 +195,7 @@ class TestDetectNPlusOne:
         assert detections[0].count == 3
 
     def test_no_detection_below_threshold(self, settings: object) -> None:
-        settings.ORMLENS = {"N1_THRESHOLD": 5}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"N1_THRESHOLD": 5}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         queries = [
             {"sql": 'SELECT * FROM "auth_user"', "time": "0.001"},
@@ -205,7 +205,7 @@ class TestDetectNPlusOne:
         assert len(detections) == 0
 
     def test_detects_multiple_tables(self, settings: object) -> None:
-        settings.ORMLENS = {"N1_THRESHOLD": 2}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"N1_THRESHOLD": 2}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         queries = [
             {"sql": 'SELECT * FROM "auth_user"', "time": "0.001"},
@@ -234,7 +234,7 @@ class TestDetectNPlusOne:
         assert detections == []
 
     def test_handles_unquoted_table_names(self, settings: object) -> None:
-        settings.ORMLENS = {"N1_THRESHOLD": 2}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"N1_THRESHOLD": 2}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         queries = [
             {"sql": "SELECT * FROM auth_user", "time": "0.001"},
@@ -254,7 +254,7 @@ class TestDetectSlowQueries:
     """Tests for slow query detection logic."""
 
     def test_detects_slow_query(self, settings: object) -> None:
-        settings.ORMLENS = {"SLOW_QUERY_MS": 50}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"SLOW_QUERY_MS": 50}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         queries = [
             {"sql": "SELECT * FROM big_table", "time": "0.100"},  # 100ms
@@ -265,7 +265,7 @@ class TestDetectSlowQueries:
         assert "big_table" in slow[0].sql
 
     def test_no_slow_queries_below_threshold(self, settings: object) -> None:
-        settings.ORMLENS = {"SLOW_QUERY_MS": 200}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"SLOW_QUERY_MS": 200}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         queries = [
             {"sql": "SELECT 1", "time": "0.001"},  # 1ms
@@ -274,7 +274,7 @@ class TestDetectSlowQueries:
         assert slow == []
 
     def test_sorted_slowest_first(self, settings: object) -> None:
-        settings.ORMLENS = {"SLOW_QUERY_MS": 50}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"SLOW_QUERY_MS": 50}  # type: ignore[attr-defined]
         analyzer = QueryAnalyzer()
         queries = [
             {"sql": "SELECT 1", "time": "0.060"},  # 60ms
@@ -329,7 +329,7 @@ class TestAnalyze:
         assert abs(result.total_time - 30.0) < 0.01
 
     def test_combines_n_plus_one_and_slow(self, settings: object) -> None:
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "N1_THRESHOLD": 2,
             "SLOW_QUERY_MS": 50,
         }

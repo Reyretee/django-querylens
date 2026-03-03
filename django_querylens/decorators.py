@@ -1,14 +1,14 @@
-"""View decorators for django-ormlens query analysis.
+"""View decorators for django-querylens query analysis.
 
 This module provides the ``explain_query`` decorator which wraps Django view
 functions (both function-based and class-based via ``method_decorator``) in a
-:class:`~django_ormlens.analyzer.QueryAnalyzer` capture session.  After the
+:class:`~django_querylens.analyzer.QueryAnalyzer` capture session.  After the
 view returns, the analysis results are forwarded to a configurable output
 function (default: :mod:`logging`).
 
 Typical usage::
 
-    from django_ormlens.decorators import explain_query
+    from django_querylens.decorators import explain_query
 
     @explain_query
     def my_view(request):
@@ -36,7 +36,7 @@ import random
 from collections.abc import Callable
 from typing import Any, TypeVar, overload
 
-from django_ormlens.analyzer import AnalysisResult, QueryAnalyzer, get_ormlens_setting
+from django_querylens.analyzer import AnalysisResult, QueryAnalyzer, get_querylens_setting
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +58,13 @@ def _default_output(result: AnalysisResult, view_name: str) -> None:
     slow queries.
 
     Args:
-        result: The populated :class:`~django_ormlens.analyzer.AnalysisResult`
+        result: The populated :class:`~django_querylens.analyzer.AnalysisResult`
             from the capture session.
         view_name: The ``__qualname__`` of the wrapped view function, used to
             contextualise log messages.
     """
     logger.info(
-        "django-ormlens [%s]: %d quer%s in %.3fms%s%s",
+        "django-querylens [%s]: %d quer%s in %.3fms%s%s",
         view_name,
         result.total_count,
         "y" if result.total_count == 1 else "ies",
@@ -75,7 +75,7 @@ def _default_output(result: AnalysisResult, view_name: str) -> None:
 
     for detection in result.n_plus_one_detected:
         logger.warning(
-            "django-ormlens [%s]: N+1 on table '%s' (%dx)",
+            "django-querylens [%s]: N+1 on table '%s' (%dx)",
             view_name,
             detection.table,
             detection.count,
@@ -83,7 +83,7 @@ def _default_output(result: AnalysisResult, view_name: str) -> None:
 
     for slow in result.slow_queries:
         logger.warning(
-            "django-ormlens [%s]: slow query %.1fms — %.120s",
+            "django-querylens [%s]: slow query %.1fms — %.120s",
             view_name,
             slow.time_ms,
             slow.sql,
@@ -98,13 +98,13 @@ def _default_output(result: AnalysisResult, view_name: str) -> None:
 def _should_sample() -> bool:
     """Determine whether this request should be sampled.
 
-    Reads ``ORMLENS["SAMPLE_RATE"]`` (a float in ``[0.0, 1.0]``).  Returns
+    Reads ``QUERYLENS["SAMPLE_RATE"]`` (a float in ``[0.0, 1.0]``).  Returns
     ``True`` with a probability equal to the configured rate.
 
     Returns:
         ``True`` if the current request should be analysed.
     """
-    rate: float = float(get_ormlens_setting("SAMPLE_RATE", 1.0))
+    rate: float = float(get_querylens_setting("SAMPLE_RATE", 1.0))
     if rate >= 1.0:
         return True
     if rate <= 0.0:
@@ -139,7 +139,7 @@ def explain_query(
     results are forwarded to *output_fn* (default: structured log messages via
     :mod:`logging`).
 
-    The decorator respects two settings from ``ORMLENS``:
+    The decorator respects two settings from ``QUERYLENS``:
 
     * ``ENABLED`` — when ``False``, the decorator is a complete no-op with
       zero overhead; the original view function is returned unwrapped.
@@ -208,7 +208,7 @@ def _wrap_view(
 ) -> _F:
     """Internal helper that applies the capture wrapper to a view function.
 
-    When ``ORMLENS["ENABLED"]`` is ``False`` at decoration time the original
+    When ``QUERYLENS["ENABLED"]`` is ``False`` at decoration time the original
     function is returned as-is.  The ENABLED check at decoration time provides
     the stated "zero overhead" guarantee — no wrapper frame is ever pushed onto
     the call stack for a permanently-disabled configuration.
@@ -236,7 +236,7 @@ def _wrap_view(
         # Per-request sampling check.
         if not _should_sample():
             logger.debug(
-                "django-ormlens: sampling skipped for '%s'.",
+                "django-querylens: sampling skipped for '%s'.",
                 view_name,
             )
             return view_func(*args, **kwargs)
@@ -248,7 +248,7 @@ def _wrap_view(
             effective_output(result, view_name)
         except Exception:
             logger.exception(
-                "django-ormlens: output_fn raised an exception for '%s'; "
+                "django-querylens: output_fn raised an exception for '%s'; "
                 "suppressing to avoid masking the view response.",
                 view_name,
             )

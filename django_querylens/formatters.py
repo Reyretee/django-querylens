@@ -1,13 +1,13 @@
-"""Output formatters for django-ormlens analysis results.
+"""Output formatters for django-querylens analysis results.
 
 This module provides :class:`TerminalFormatter` and :class:`HtmlFormatter`
-for rendering :class:`~django_ormlens.analyzer.AnalysisResult` objects into
+for rendering :class:`~django_querylens.analyzer.AnalysisResult` objects into
 human-readable strings, plus a :func:`get_formatter` factory that reads the
-``ORMLENS["OUTPUT"]`` setting and returns the appropriate formatter instance.
+``QUERYLENS["OUTPUT"]`` setting and returns the appropriate formatter instance.
 
 Typical usage::
 
-    from django_ormlens.formatters import get_formatter
+    from django_querylens.formatters import get_formatter
 
     formatter = get_formatter("terminal")
     output = formatter.format(result)
@@ -24,7 +24,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from django_ormlens.analyzer import AnalysisResult, get_ormlens_setting
+from django_querylens.analyzer import AnalysisResult, get_querylens_setting
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +59,10 @@ except ImportError:
 
 
 class BaseFormatter(ABC):
-    """Abstract base class for all django-ormlens output formatters.
+    """Abstract base class for all django-querylens output formatters.
 
     Subclasses must implement :meth:`format` to convert an
-    :class:`~django_ormlens.analyzer.AnalysisResult` into a string.
+    :class:`~django_querylens.analyzer.AnalysisResult` into a string.
 
     Example::
 
@@ -77,7 +77,7 @@ class BaseFormatter(ABC):
 
         Args:
             result: The populated
-                :class:`~django_ormlens.analyzer.AnalysisResult` to render.
+                :class:`~django_querylens.analyzer.AnalysisResult` to render.
 
         Returns:
             A formatted string representation of the analysis result.
@@ -126,7 +126,7 @@ class TerminalFormatter(BaseFormatter):
 
         Args:
             result: The populated
-                :class:`~django_ormlens.analyzer.AnalysisResult` to render.
+                :class:`~django_querylens.analyzer.AnalysisResult` to render.
 
         Returns:
             A multi-line string with box-drawn tables and optional ANSI colour.
@@ -216,7 +216,7 @@ class TerminalFormatter(BaseFormatter):
         total_w = lw + vw + 3  # borders + separators
 
         top = "\u250c" + "\u2500" * (total_w) + "\u2510"
-        title_text = " django-ormlens \u2014 Query Analysis Report "
+        title_text = " django-querylens \u2014 Query Analysis Report "
         title_pad = total_w - len(title_text)
         title_l = title_pad // 2
         title_r = title_pad - title_l
@@ -374,7 +374,7 @@ class HtmlFormatter(BaseFormatter):
 
         Args:
             result: The populated
-                :class:`~django_ormlens.analyzer.AnalysisResult` to render.
+                :class:`~django_querylens.analyzer.AnalysisResult` to render.
 
         Returns:
             An HTML string containing styled tables with the analysis data.
@@ -390,7 +390,7 @@ class HtmlFormatter(BaseFormatter):
             parts.append(self._render_slow_queries(result))
 
         inner = "\n".join(parts)
-        return f'<div class="ormlens-report">\n{inner}\n</div>'
+        return f'<div class="querylens-report">\n{inner}\n</div>'
 
     # ------------------------------------------------------------------
     # Private rendering helpers
@@ -405,22 +405,22 @@ class HtmlFormatter(BaseFormatter):
         """
         return (
             "<style>\n"
-            ".ormlens-report { font-family: monospace; max-width: 900px; }\n"
-            ".ormlens-report h2 { color: #2c3e50;"
+            ".querylens-report { font-family: monospace; max-width: 900px; }\n"
+            ".querylens-report h2 { color: #2c3e50;"
             " border-bottom: 2px solid #3498db; }\n"
-            ".ormlens-report h3 { color: #2c3e50; }\n"
-            ".ormlens-table { border-collapse: collapse;"
+            ".querylens-report h3 { color: #2c3e50; }\n"
+            ".querylens-table { border-collapse: collapse;"
             " width: 100%; margin-bottom: 1em; }\n"
-            ".ormlens-table th { background: #2c3e50; color: #fff;"
+            ".querylens-table th { background: #2c3e50; color: #fff;"
             " padding: 8px 12px; text-align: left; }\n"
-            ".ormlens-table td { padding: 6px 12px;"
+            ".querylens-table td { padding: 6px 12px;"
             " border-bottom: 1px solid #ddd; }\n"
-            ".ormlens-table tr:nth-child(even) { background: #f9f9f9; }\n"
-            ".ormlens-table tr:hover { background: #eaf4fb; }\n"
-            ".ormlens-badge-ok { color: #27ae60; font-weight: bold; }\n"
-            ".ormlens-badge-warn { color: #e67e22; font-weight: bold; }\n"
-            ".ormlens-badge-error { color: #e74c3c; font-weight: bold; }\n"
-            ".ormlens-sql { font-size: 0.85em; word-break: break-all; }\n"
+            ".querylens-table tr:nth-child(even) { background: #f9f9f9; }\n"
+            ".querylens-table tr:hover { background: #eaf4fb; }\n"
+            ".querylens-badge-ok { color: #27ae60; font-weight: bold; }\n"
+            ".querylens-badge-warn { color: #e67e22; font-weight: bold; }\n"
+            ".querylens-badge-error { color: #e74c3c; font-weight: bold; }\n"
+            ".querylens-sql { font-size: 0.85em; word-break: break-all; }\n"
             "</style>"
         )
 
@@ -435,7 +435,7 @@ class HtmlFormatter(BaseFormatter):
         Returns:
             An HTML ``<span>`` element with appropriate CSS class.
         """
-        css = warn_cls if value > 0 else "ormlens-badge-ok"
+        css = warn_cls if value > 0 else "querylens-badge-ok"
         escaped = html_module.escape(str(value))
         return f'<span class="{css}">{escaped}</span>'
 
@@ -450,11 +450,11 @@ class HtmlFormatter(BaseFormatter):
         """
         n1_badge = self._badge(
             len(result.n_plus_one_detected),
-            warn_cls="ormlens-badge-error",
+            warn_cls="querylens-badge-error",
         )
         slow_badge = self._badge(
             len(result.slow_queries),
-            warn_cls="ormlens-badge-warn",
+            warn_cls="querylens-badge-warn",
         )
 
         rows: list[tuple[str, str]] = [
@@ -470,8 +470,8 @@ class HtmlFormatter(BaseFormatter):
         )
 
         return (
-            "<h2>django-ormlens \u2014 Query Analysis Report</h2>\n"
-            '<table class="ormlens-table">\n'
+            "<h2>django-querylens \u2014 Query Analysis Report</h2>\n"
+            '<table class="querylens-table">\n'
             "  <thead>\n"
             "    <tr><th>Metric</th><th>Value</th></tr>\n"
             "  </thead>\n"
@@ -493,7 +493,7 @@ class HtmlFormatter(BaseFormatter):
         row_html = "\n".join(
             f"    <tr>"
             f"<td>{html_module.escape(d.table)}</td>"
-            f'<td class="ormlens-badge-error">'
+            f'<td class="querylens-badge-error">'
             f"{html_module.escape(str(d.count))}"
             f"</td>"
             f"</tr>"
@@ -502,7 +502,7 @@ class HtmlFormatter(BaseFormatter):
 
         return (
             "<h3>N+1 Detections</h3>\n"
-            '<table class="ormlens-table">\n'
+            '<table class="querylens-table">\n'
             "  <thead>\n"
             "    <tr><th>Table</th><th>Count</th></tr>\n"
             "  </thead>\n"
@@ -524,8 +524,8 @@ class HtmlFormatter(BaseFormatter):
         """
         row_html = "\n".join(
             f"    <tr>"
-            f'<td class="ormlens-sql">{html_module.escape(sq.sql)}</td>'
-            f'<td class="ormlens-badge-warn">'
+            f'<td class="querylens-sql">{html_module.escape(sq.sql)}</td>'
+            f'<td class="querylens-badge-warn">'
             f"{html_module.escape(f'{sq.time_ms:.1f}')}"
             f"</td>"
             f"</tr>"
@@ -534,7 +534,7 @@ class HtmlFormatter(BaseFormatter):
 
         return (
             "<h3>Slow Queries</h3>\n"
-            '<table class="ormlens-table">\n'
+            '<table class="querylens-table">\n'
             "  <thead>\n"
             "    <tr><th>SQL</th><th>Time (ms)</th></tr>\n"
             "  </thead>\n"
@@ -560,12 +560,12 @@ def get_formatter(output_type: str | None = None) -> BaseFormatter:
     """Return a formatter instance for the requested *output_type*.
 
     When *output_type* is ``None`` the value is read from
-    ``ORMLENS["OUTPUT"]`` in Django settings, defaulting to ``"terminal"``
+    ``QUERYLENS["OUTPUT"]`` in Django settings, defaulting to ``"terminal"``
     if the setting is absent.
 
     Args:
         output_type: One of ``"terminal"`` or ``"html"``.  Pass ``None`` to
-            auto-detect from ``ORMLENS["OUTPUT"]``.
+            auto-detect from ``QUERYLENS["OUTPUT"]``.
 
     Returns:
         A :class:`BaseFormatter` subclass instance matching *output_type*.
@@ -584,7 +584,7 @@ def get_formatter(output_type: str | None = None) -> BaseFormatter:
     """
     resolved: str
     if output_type is None:
-        setting_value: Any = get_ormlens_setting("OUTPUT", "terminal")
+        setting_value: Any = get_querylens_setting("OUTPUT", "terminal")
         resolved = str(setting_value).lower().strip()
     else:
         resolved = output_type.lower().strip()

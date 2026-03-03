@@ -1,4 +1,4 @@
-"""Tests for django_ormlens.signals module."""
+"""Tests for django_querylens.signals module."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from django_ormlens.signals import (
+from django_querylens.signals import (
     _is_enabled,
     _local,
     _reset_local,
@@ -28,7 +28,7 @@ class TestIsEnabled:
         assert _is_enabled() is True
 
     def test_disabled_when_setting_false(self, settings: object) -> None:
-        settings.ORMLENS = {"ENABLED": False}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"ENABLED": False}  # type: ignore[attr-defined]
         assert _is_enabled() is False
 
 
@@ -41,11 +41,11 @@ class TestShouldSample:
     """Tests for signal-level sampling."""
 
     def test_always_at_rate_1(self, settings: object) -> None:
-        settings.ORMLENS = {"SAMPLE_RATE": 1.0}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"SAMPLE_RATE": 1.0}  # type: ignore[attr-defined]
         assert _should_sample() is True
 
     def test_never_at_rate_0(self, settings: object) -> None:
-        settings.ORMLENS = {"SAMPLE_RATE": 0.0}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"SAMPLE_RATE": 0.0}  # type: ignore[attr-defined]
         assert _should_sample() is False
 
 
@@ -78,7 +78,7 @@ class TestOnRequestStarted:
     """Tests for the request_started signal handler."""
 
     def test_noop_when_disabled(self, settings: object) -> None:
-        settings.ORMLENS = {"ENABLED": False}  # type: ignore[attr-defined]
+        settings.QUERYLENS = {"ENABLED": False}  # type: ignore[attr-defined]
         _reset_local()
 
         on_request_started(sender=None)
@@ -86,7 +86,7 @@ class TestOnRequestStarted:
         assert getattr(_local, "active", False) is False
 
     def test_noop_when_sampling_skipped(self, settings: object) -> None:
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "ENABLED": True,
             "SAMPLE_RATE": 0.0,
         }
@@ -98,7 +98,7 @@ class TestOnRequestStarted:
 
     @pytest.mark.django_db
     def test_starts_capture_when_enabled(self, settings: object) -> None:
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "ENABLED": True,
             "SAMPLE_RATE": 1.0,
         }
@@ -132,7 +132,7 @@ class TestOnRequestFinished:
 
     @pytest.mark.django_db
     def test_finalizes_capture(self, settings: object) -> None:
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "ENABLED": True,
             "SAMPLE_RATE": 1.0,
         }
@@ -148,7 +148,7 @@ class TestOnRequestFinished:
 
     @pytest.mark.django_db
     def test_resets_state_after_finish(self, settings: object) -> None:
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "ENABLED": True,
             "SAMPLE_RATE": 1.0,
         }
@@ -177,13 +177,13 @@ class TestSignalIntegration:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Simulate a full request lifecycle through signals."""
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "ENABLED": True,
             "SAMPLE_RATE": 1.0,
         }
         _reset_local()
 
-        with caplog.at_level("DEBUG", logger="django_ormlens"):
+        with caplog.at_level("DEBUG", logger="django_querylens"):
             on_request_started(sender=None)
             # Simulate some query activity
             from django.contrib.auth.models import User
@@ -195,11 +195,11 @@ class TestSignalIntegration:
         assert _local.active is False
 
     @pytest.mark.django_db
-    @patch("django_ormlens.signals._should_sample", return_value=False)
+    @patch("django_querylens.signals._should_sample", return_value=False)
     def test_no_capture_when_not_sampled(
         self, mock_sample: object, settings: object
     ) -> None:
-        settings.ORMLENS = {  # type: ignore[attr-defined]
+        settings.QUERYLENS = {  # type: ignore[attr-defined]
             "ENABLED": True,
             "SAMPLE_RATE": 0.5,
         }

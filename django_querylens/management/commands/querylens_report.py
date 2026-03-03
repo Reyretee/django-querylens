@@ -1,6 +1,6 @@
-"""Management command ``ormlens_report`` for django-ormlens.
+"""Management command ``querylens_report`` for django-querylens.
 
-Provides a ``python manage.py ormlens_report`` command that displays a
+Provides a ``python manage.py querylens_report`` command that displays a
 formatted query-analysis report.  When stored reports are available (e.g.
 collected by the signal-based per-request capture) the command renders the
 most recent results.  Otherwise it prints setup instructions.
@@ -8,13 +8,13 @@ most recent results.  Otherwise it prints setup instructions.
 Usage::
 
     # Show top 10 slowest queries (default) in terminal format:
-    python manage.py ormlens_report
+    python manage.py querylens_report
 
     # Show top 20 slowest queries in HTML format:
-    python manage.py ormlens_report --top 20 --format html
+    python manage.py querylens_report --top 20 --format html
 
     # Terminal format explicitly:
-    python manage.py ormlens_report --format terminal
+    python manage.py querylens_report --format terminal
 """
 
 from __future__ import annotations
@@ -25,8 +25,8 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 
-from django_ormlens.analyzer import AnalysisResult, QueryAnalyzer
-from django_ormlens.formatters import BaseFormatter, get_formatter
+from django_querylens.analyzer import AnalysisResult, QueryAnalyzer
+from django_querylens.formatters import BaseFormatter, get_formatter
 
 logger = logging.getLogger(__name__)
 
@@ -63,12 +63,12 @@ _SAMPLE_QUERIES: list[dict[str, str]] = [
 
 
 class Command(BaseCommand):
-    """Django management command that prints an ormlens analysis report.
+    """Django management command that prints an querylens analysis report.
 
-    Renders an :class:`~django_ormlens.analyzer.AnalysisResult` using the
+    Renders an :class:`~django_querylens.analyzer.AnalysisResult` using the
     selected formatter (terminal or HTML).  The result is built from
     representative sample queries to demonstrate the output format; in
-    production the :func:`~django_ormlens.decorators.explain_query` decorator
+    production the :func:`~django_querylens.decorators.explain_query` decorator
     or the automatic signal-based capture provides real query data.
 
     Arguments:
@@ -79,19 +79,19 @@ class Command(BaseCommand):
     Example::
 
         # From the command line:
-        python manage.py ormlens_report --top 5 --format html
+        python manage.py querylens_report --top 5 --format html
 
         # Programmatic use in tests:
         from io import StringIO
         from django.core.management import call_command
 
         out = StringIO()
-        call_command("ormlens_report", "--top", "3", stdout=out)
+        call_command("querylens_report", "--top", "3", stdout=out)
         assert "Query Analysis Report" in out.getvalue()
     """
 
     help = (
-        "Display a django-ormlens query-analysis report. "
+        "Display a django-querylens query-analysis report. "
         "Use --top N to limit slow queries shown and "
         "--format to choose output type."
     )
@@ -124,7 +124,7 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> None:
         """Execute the command.
 
-        Builds an :class:`~django_ormlens.analyzer.AnalysisResult` from
+        Builds an :class:`~django_querylens.analyzer.AnalysisResult` from
         sample queries, optionally truncates slow queries to the ``--top``
         limit, then renders and writes the output.
 
@@ -141,14 +141,14 @@ class Command(BaseCommand):
         output_format: str = options["output_format"]
 
         logger.debug(
-            "ormlens_report: top=%d output_format=%r",
+            "querylens_report: top=%d output_format=%r",
             top,
             output_format,
         )
 
         self.stdout.write(
             self.style.NOTICE(
-                "django-ormlens: generating report "
+                "django-querylens: generating report "
                 f"(top={top}, format={output_format!r}) ..."
             )
         )
@@ -167,7 +167,7 @@ class Command(BaseCommand):
         try:
             rendered: str = formatter.format(result)
         except Exception as exc:
-            logger.exception("ormlens_report: formatter raised an unexpected error.")
+            logger.exception("querylens_report: formatter raised an unexpected error.")
             raise CommandError(
                 f"Failed to render report using {type(formatter).__name__}: {exc}"
             ) from exc
@@ -194,7 +194,7 @@ class Command(BaseCommand):
                 Pass 0 to retain all.
 
         Returns:
-            A populated :class:`~django_ormlens.analyzer.AnalysisResult`.
+            A populated :class:`~django_querylens.analyzer.AnalysisResult`.
         """
         analyzer = QueryAnalyzer()
         result = analyzer.analyze(_SAMPLE_QUERIES)
@@ -208,7 +208,7 @@ class Command(BaseCommand):
                 slow_queries=result.slow_queries[:top],
                 has_n_plus_one=result.has_n_plus_one,
             )
-            logger.debug("ormlens_report: truncated slow_queries to top %d.", top)
+            logger.debug("querylens_report: truncated slow_queries to top %d.", top)
 
         return result
 
@@ -243,16 +243,16 @@ class Command(BaseCommand):
         """Write setup instructions when no query data is available.
 
         Printed when the analysis result has zero queries, indicating that
-        the ormlens capture has not yet collected any data.
+        the querylens capture has not yet collected any data.
         """
         instructions = (
             "\n"
             "No query data collected yet.  To capture live query data:\n"
             "\n"
-            "  1. Add 'django_ormlens' to INSTALLED_APPS in settings.py.\n"
+            "  1. Add 'django_querylens' to INSTALLED_APPS in settings.py.\n"
             "\n"
-            "  2. Configure ORMLENS in settings.py, for example:\n"
-            "     ORMLENS = {\n"
+            "  2. Configure QUERYLENS in settings.py, for example:\n"
+            "     QUERYLENS = {\n"
             '         "ENABLED": True,\n'
             '         "SAMPLE_RATE": 1.0,\n'
             '         "N1_THRESHOLD": 3,\n'
@@ -261,7 +261,7 @@ class Command(BaseCommand):
             "     }\n"
             "\n"
             "  3. Use the decorator on views you want to profile:\n"
-            "     from django_ormlens import explain_query\n"
+            "     from django_querylens import explain_query\n"
             "\n"
             "     @explain_query\n"
             "     def my_view(request):\n"

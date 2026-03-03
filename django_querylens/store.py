@@ -9,7 +9,7 @@ safe to use from concurrent WSGI/ASGI worker threads.
 
 Typical usage::
 
-    from django_ormlens.store import get_store
+    from django_querylens.store import get_store
 
     store = get_store()
     store.add(report)
@@ -24,7 +24,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from django_ormlens.analyzer import AnalysisResult, get_ormlens_setting
+from django_querylens.analyzer import AnalysisResult, get_querylens_setting
 
 
 @dataclass
@@ -50,7 +50,7 @@ class ReportStore:
     """Thread-safe bounded in-memory store for :class:`StoredReport` instances.
 
     Uses a :class:`collections.deque` with ``maxlen`` set to
-    ``ORMLENS["MAX_STORED_REPORTS"]`` to automatically evict the oldest
+    ``QUERYLENS["MAX_STORED_REPORTS"]`` to automatically evict the oldest
     reports when the buffer is full.
 
     Example::
@@ -61,7 +61,7 @@ class ReportStore:
     """
 
     def __init__(self) -> None:
-        max_size: int = int(get_ormlens_setting("MAX_STORED_REPORTS", 1000))
+        max_size: int = int(get_querylens_setting("MAX_STORED_REPORTS", 1000))
         self._lock = threading.Lock()
         self._reports: deque[StoredReport] = deque(maxlen=max_size)
 

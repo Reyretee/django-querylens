@@ -1,11 +1,11 @@
-"""django-ormlens — Django ORM query visualizer with N+1 detection.
+"""django-querylens — Django ORM query visualizer with N+1 detection.
 
 Public API
 ----------
 
 .. code-block:: python
 
-    from django_ormlens import QueryAnalyzer, explain_query
+    from django_querylens import QueryAnalyzer, explain_query
 
     # Context-manager style
     analyzer = QueryAnalyzer()
@@ -28,15 +28,15 @@ __version__ = "0.1.0"
 # Default app config — required for Django < 3.2 auto-discovery compatibility
 # ---------------------------------------------------------------------------
 
-default_app_config = "django_ormlens.apps.DjangoOrmLensConfig"
+default_app_config = "django_querylens.apps.DjangoQueryLensConfig"
 
 # ---------------------------------------------------------------------------
 # Public exports
 # ---------------------------------------------------------------------------
 
-from django_ormlens.analyzer import QueryAnalyzer  # noqa: E402
-from django_ormlens.decorators import explain_query  # noqa: E402, F401
-from django_ormlens.middleware import QueryLensMiddleware  # noqa: E402, F401
+from django_querylens.analyzer import QueryAnalyzer  # noqa: E402
+from django_querylens.decorators import explain_query  # noqa: E402, F401
+from django_querylens.middleware import QueryLensMiddleware  # noqa: E402, F401
 
 __all__ = [
     "QueryAnalyzer",
